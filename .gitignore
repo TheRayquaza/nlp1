@@ -1,0 +1,55 @@
+*.DS_Store
+*.pkl
+*.keras
+*.pickle
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Pytest cache
+.cache/
+.pytest_cache/
+
+# MyPy cache
+.mypy_cache/
+
+# VS Code settings
+.vscode/
+*.code-workspace
+
+# Local Docker volumes and data
+volumes/
+data/
+db_data/
+
+# Logs and runtime files
+logs/
+*.log
+*.out
+*.err
+nohup.out
+
+# Volumes
+data
+.venv
+
+# hydra
+outputs

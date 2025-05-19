@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+
+  minio:
+    restart: always
+    image: minio/minio@sha256:d051d800a3025588f37f69f132bb5ef718547a9a4ee95ddee44e04ad952a0a96
+    container_name: s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: server /data --console-address ':9001' --address ':9000'
+    environment:
+      - MINIO_ROOT_USER=root
+      - MINIO_ROOT_PASSWORD=rootroot
+    volumes:
+        - ./data/minio:/data
+
+  minio-bucket-creator:
+    image: minio/mc
+    entrypoint: /bin/sh
+    command: -c "until (mc alias set myminio http://s3:9000 root rootroot && mc mb myminio/mlflow); do echo 'Waiting for MinIO to be ready...' && sleep 5; done"
+    depends_on:
+      - minio
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.0.1
+    container_name: mlflow
+    depends_on:
+      - postgres
+      - minio
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=ml_database
+      - AWS_ACCESS_KEY_ID=root
+      - AWS_SECRET_ACCESS_KEY=rootroot
+    volumes:
+      - ./data/mlflow:/mlflow
+    command: >
+      /bin/sh -c "pip install psycopg2-binary boto3 && \
+        mlflow server --backend-store-uri postgresql://admin:secret@postgres:5432/ml_database \
+        --default-artifact-root s3://mlflow/ --host 0.0.0.0" & \
+        sleep 5 && \
+        mlflow models serve -m s3://mlflow/generator:latest --host 0.0.0.0 --port 5001 & \
+        mlflow models serve -m s3://mlflow/complexity --host 0.0.0.0 --port 5002" & \
+        mlflow models serve -m s3://mlflow/recommender --host 0.0.0.0 --port 5003" &
+
+  postgres:
+    image: postgres:13
+    container_name: db
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=ml_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres

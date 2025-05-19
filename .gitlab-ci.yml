@@ -1,0 +1,9 @@
+include:
+  - 'ci/model-generator.gitlab-ci.yml'
+  - 'ci/model-recommender.gitlab-ci.yml'
+  - 'ci/model-time.gitlab-ci.yml'
+
+stages:
+  - lint
+  - test
+  - build
